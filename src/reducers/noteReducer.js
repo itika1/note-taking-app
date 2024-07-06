@@ -1,4 +1,4 @@
-import { ADD_NOTE, DELETE_NOTE, PIN_NOTE } from '../actions/noteActions';
+import { ADD_NOTE, DELETE_NOTE, PIN_NOTE, EDIT_NOTE } from '../actions/noteActions';
 
 const initialState = {
   notes: [],
@@ -21,6 +21,13 @@ const noteReducer = (state = initialState, action) => {
         ...state,
         notes: state.notes.map((note) =>
           note.id === action.payload ? { ...note, pinned: !note.pinned } : note
+        ),
+      };
+    case EDIT_NOTE:
+      return {
+        ...state,
+        notes: state.notes.map((note) =>
+          note.id === action.payload.id ? { ...action.payload } : note
         ),
       };
     default:

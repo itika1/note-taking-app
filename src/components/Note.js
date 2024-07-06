@@ -1,67 +1,177 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { deleteNote, pinNote } from '../actions/noteActions';
+import { deleteNote, editNote, pinNote } from '../actions/noteActions';
 
 const Note = ({ note }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(note.title);
+  const [editedContent, setEditedContent] = useState(note.content);
+  const [tempBackgroundColor, setTempBackgroundColor] = useState(note.backgroundColor);
+  const [image, setImage] = useState(note.image);
+
   const dispatch = useDispatch();
 
+  const handleDelete = () => {
+    dispatch(deleteNote(note.id));
+  };
+
+  const handlePin = () => {
+    dispatch(pinNote(note.id));
+  };
+
+  const handleEdit = () => {
+    setIsEditing(!isEditing);
+  };
+
+  const handleApplyColor = () => {
+    note.backgroundColor = tempBackgroundColor;
+    dispatch(editNote({ ...note, backgroundColor: tempBackgroundColor }));
+  };
+
+  const handleSave = () => {
+    dispatch(editNote({
+      ...note,
+      title: editedTitle,
+      content: editedContent,
+      backgroundColor: tempBackgroundColor,
+      image,
+    }));
+    setIsEditing(false);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result);
+        note.image = reader.result;
+        dispatch(editNote({ ...note, image: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
-    <div style={{ ...styles.note, ...(note.pinned ? styles.pinned : {}) }}>
-      {note.title && <h2 style={styles.title}>{note.title}</h2>}
-      <p style={styles.content}>{note.content}</p>
-      <button onClick={() => dispatch(pinNote(note.id))} style={styles.pinButton}>
-        {note.pinned ? 'Unpin' : 'Pin'}
-      </button>
-      <button onClick={() => dispatch(deleteNote(note.id))} style={styles.deleteButton}>
-        Delete
-      </button>
+    <div style={{ ...styles.note, backgroundColor: note.backgroundColor }}>
+      {isEditing ? (
+        <div>
+          <input
+            type="text"
+            value={editedTitle}
+            onChange={(e) => setEditedTitle(e.target.value)}
+            style={styles.input}
+          />
+          <textarea
+            value={editedContent}
+            onChange={(e) => setEditedContent(e.target.value)}
+            style={styles.textarea}
+          ></textarea>
+          <div style={styles.iconContainer}>
+            <input
+              type="color"
+              value={tempBackgroundColor}
+              onChange={(e) => setTempBackgroundColor(e.target.value)}
+              style={styles.hiddenColorPicker}
+              id={`colorPicker-${note.id}`}
+            />
+            <label htmlFor={`colorPicker-${note.id}`} style={styles.icon} title="Choose Background Color">
+              🎨
+            </label>
+            <span onClick={handleApplyColor} style={styles.icon} title="Apply Color">
+              ✔️
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              style={styles.fileInput}
+              id={`fileInput-${note.id}`}
+            />
+            <label htmlFor={`fileInput-${note.id}`} style={styles.icon} title="Add Image">
+              🖼️
+            </label>
+            <span onClick={handleSave} style={styles.icon} title="Save">
+              💾
+            </span>
+            <span onClick={handleEdit} style={styles.icon} title="Cancel">
+              ❌
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <h3>{note.title}</h3>
+          <p>{note.content}</p>
+          {note.image && <img src={note.image} alt="note" style={styles.image} />}
+          <div style={styles.iconContainer}>
+            <span onClick={handleEdit} style={styles.icon} title="Edit">
+              ✏️
+            </span>
+            <span onClick={handlePin} style={styles.icon} title={note.pinned ? 'Unpin' : 'Pin'}>
+              📌
+            </span>
+            <span onClick={handleDelete} style={styles.icon} title="Delete">
+              🗑️
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 const styles = {
   note: {
-    padding: '15px',
+    width: '100%',
+    maxWidth: '300px',
+    padding: '20px',
+    margin: '10px',
+    borderRadius: '8px',
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+    boxSizing: 'border-box',
+  },
+  input: {
+    width: '100%',
+    padding: '10px',
+    margin: '5px 0',
     border: '1px solid #ccc',
     borderRadius: '4px',
-    backgroundColor: '#f9f9f9',
-    position: 'relative',
-    minHeight: '100px', // Ensure minimum height for short notes
+    fontSize: '16px',
+  },
+  textarea: {
+    width: '100%',
+    padding: '10px',
+    margin: '5px 0',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    fontSize: '16px',
+  },
+  iconContainer: {
     display: 'flex',
-    flexDirection: 'column',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: '10px',
   },
-  pinned: {
-    border: '1px solid #007bff',
+  hiddenColorPicker: {
+    display: 'none',
   },
-  title: {
-    margin: '0 0 10px 0',
-  },
-  content: {
-    flex: '1',
-    margin: '0 0 10px 0',
-  },
-  pinButton: {
-    position: 'absolute',
-    top: '10px',
-    right: '10px',
-    padding: '5px 10px',
-    border: 'none',
-    borderRadius: '4px',
-    backgroundColor: '#007bff',
-    color: 'white',
+  icon: {
+    padding: '10px',
+    margin: '0 5px',
     cursor: 'pointer',
-  },
-  deleteButton: {
-    position: 'absolute',
-    bottom: '10px',
-    right: '10px',
-    padding: '5px 10px',
-    border: 'none',
+    fontSize: '18px',
     borderRadius: '4px',
-    backgroundColor: 'red',
-    color: 'white',
-    cursor: 'pointer',
+    transition: 'background 0.3s',
+  },
+  fileInput: {
+    display: 'none',
+  },
+  image: {
+    width: '100%',
+    height: 'auto',
+    marginTop: '10px',
+    borderRadius: '4px',
   },
 };
 
